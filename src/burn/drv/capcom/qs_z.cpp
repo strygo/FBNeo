@@ -10,7 +10,7 @@ static INT32 QsndZBankMap()
 	UINT32 nOff;
 	UINT8* Bank;
 	nOff = nQsndZBank << 14;
-	nOff += (Cps2Turbo) ? 0x10000 : 0x8000; // sfz3mix .22 z80 rom stored in mame memmap format (banks start at 0x10000, instead of 0x8000 like fbneo)
+	nOff += Cps2Board.nZ80BankOffset;
 
 	if (Cps1Qs == 0) {
 		if (nOff + 0x4000 > nCpsZRomLen) {			// End of bank is out of range
@@ -52,10 +52,7 @@ void __fastcall QsndZWrite(UINT16 a, UINT8 d)
 	}
 	if (a == 0xd003) {
 		INT32 nNewBank = d & 0x0f;
-		if (nQsndZBank != nNewBank) {
-			nQsndZBank = nNewBank;
-			QsndZBankMap();
-		}
+		QsndZSetBank(nNewBank);
 	}
 }
 
@@ -117,6 +114,26 @@ INT32 QsndZInit()
 	QscCmd[0] = QscCmd[1] = 0;
 
 	return 0;
+}
+
+void QsndZSetBank(INT32 nBank)
+{
+	if (nQsndZBank != nBank) {
+		nQsndZBank = nBank;
+		QsndZBankMap();
+	}
+}
+
+INT32 QsndZGetBank()
+{
+	return nQsndZBank;
+}
+
+void QsndZReset()
+{
+	nQsndZBank = 0;
+	QsndZBankMap();
+	QscCmd[0] = QscCmd[1] = 0;
 }
 
 INT32 QsndZExit()

@@ -15,6 +15,7 @@ UINT8 *CpsRom =NULL; UINT32 nCpsRomLen =0; // Program Rom (as in rom)
 UINT8 *CpsCode=NULL; UINT32 nCpsCodeLen=0; // Program Rom (decrypted)
 UINT8 *CpsZRom=NULL; UINT32 nCpsZRomLen=0; // Z80 Roms
 INT8 *CpsQSam=NULL; UINT32 nCpsQSamLen=0;	// QSound Sample Roms
+UINT32 nCpsQSamMask = 0;
 UINT8 *CpsAd  =NULL; UINT32 nCpsAdLen  =0; // ADPCM Data
 UINT8 *CpsStar=NULL;
 UINT8 *CpsKey=NULL; UINT32 nCpsKeyLen = 0;
@@ -2023,7 +2024,7 @@ static INT32 CpsGetROMs(bool bLoad)
 		if ((ri.nType & 0x0f) == CPS2_PRG_68K) {
 			if (bLoad) {
 				if (BurnLoadRom(CpsRomLoad, i, 1)) return 1;
-				if (Cps2Turbo) BurnByteswap(CpsRomLoad, ri.nLen);
+				if (Cps2Board.nRomLayout == CPS2_ROM_LINEAR) BurnByteswap(CpsRomLoad, ri.nLen);
 				CpsRomLoad += ri.nLen;
 			} else {
 				nCpsRomLen += ri.nLen;
@@ -2052,7 +2053,7 @@ static INT32 CpsGetROMs(bool bLoad)
 		
 		if ((ri.nType & 0x0f) == CPS2_GFX) {
 			if (bLoad) {
-				if (Cps2Turbo) {
+				if (Cps2Board.nRomLayout == CPS2_ROM_LINEAR) {
 					BurnLoadRom(CpsGfxLoad, i, 1);
 
 					CpsGfxLoad += ri.nLen;
@@ -2142,7 +2143,7 @@ static INT32 CpsGetROMs(bool bLoad)
 		if ((ri.nType & 0x0f) == CPS2_QSND) {
 			if (bLoad) {
 				BurnLoadRom(CpsQSamLoad, i, 1);
-				if (Cps2Turbo == 0) {
+				if (Cps2Board.nRomLayout == CPS2_ROM_SOCKETS) {
 					BurnByteswap(CpsQSamLoad, ri.nLen);
 				}
 				CpsQSamLoad += ri.nLen;
@@ -2189,11 +2190,12 @@ static INT32 CpsGetROMs(bool bLoad)
 			((UINT32*)CpsCode)[i] ^= ((UINT32*)CpsRom)[i];
 		}
 #endif
-		if (Cps2Turbo) {
+		if (Cps2Board.nRomLayout == CPS2_ROM_LINEAR) {
 			Cps2LoadTilesTurbo(CpsGfx, nCpsGfxLen);
 		}
 
 		cps2_decrypt_game_data();
+		if (nCpsCodeLen && CpsCode == NULL) return 1;
 
 //		if (!nCpsCodeLen) return 1;
 	} else {
@@ -2201,6 +2203,7 @@ static INT32 CpsGetROMs(bool bLoad)
 		if (nGfxMaxSize != ~0U) {
 			nCpsGfxLen = nGfxNum * nGfxMaxSize;
 		}
+		if (Cps2Board.nGfxSize) nCpsGfxLen = Cps2Board.nGfxSize;
 		
 #if 1 && defined FBNEO_DEBUG
 		if (!nCpsCodeLen) {
@@ -2251,9 +2254,6 @@ INT32 CpsInit()
 		} else {
 			nCPS68KClockspeed = 10000000;
 		}
-	}
-	if (Cps2Turbo) {
-		nCPS68KClockspeed = 32000000;
 	}
 	nCPS68KClockspeed = (INT64)nCPS68KClockspeed * 100 / nBurnFPS;
 
@@ -2351,6 +2351,7 @@ INT32 CpsExit()
 	nCpsCodeLen = nCpsRomLen = nCpsGfxLen = nCpsZRomLen = nCpsQSamLen = nCpsAdLen = nCpsKeyLen = 0;
 	CpsRom = CpsZRom = CpsAd = CpsStar = NULL;
 	CpsQSam = NULL;
+	nCpsQSamMask = 0;
 	CpsKey = NULL;
 
 	// All Memory is allocated to this (this is the only one we can free)
@@ -2369,10 +2370,7 @@ INT32 CpsExit()
 	nCpsGlobalXOffset = 0;
 	nCpsGlobalYOffset = 0;
 
-	if (Cps2Turbo) {
-		BurnSampleExit();
-		Cps2Turbo = 0;
-	}
+	Cps2BoardReset();
 
 	return 0;
 }

@@ -1209,6 +1209,9 @@
     <ClCompile Include="..\..\src\burn\drv\capcom\cps2_crpt.cpp">
       <Filter>Burn\drv\capcom</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\burn\drv\capcom\cps2_board.cpp">
+      <Filter>Burn\drv\capcom</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\burn\drv\capcom\cpsr.cpp">
       <Filter>Burn\drv\capcom</Filter>
     </ClCompile>

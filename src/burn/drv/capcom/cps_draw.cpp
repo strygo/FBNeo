@@ -499,7 +499,7 @@ static void DoDraw(INT32 Recalc)
 {
 	CtvReady();								// Point to correct tile drawing functions
 
-	// xmvsf3v3: a state load restores the effective palette itself; rereading palette RAM would lose it
+	// A restored display state already contains the effective palette.
 	if (!CpsPalConsumeRestoredCache()) {
 		if (CpsRecalcPal || bCpsUpdatePalEveryFrame) GetPalette(0, 6);
 		if (Recalc || bCpsUpdatePalEveryFrame) CpsPalUpdate(CpsSavePal);		// recalc whole palette if needed

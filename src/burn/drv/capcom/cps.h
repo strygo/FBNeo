@@ -11,6 +11,7 @@
 #include "eeprom.h"
 #include "timer.h"
 #include "samples.h"
+#include "cps2_board.h"
 
 // Maximum number of beam-synchronized interrupts to check
 #define MAX_RASTER 10
@@ -31,6 +32,7 @@ extern UINT8 *CpsRom;  extern UINT32 nCpsRomLen;		// Program Rom (as in rom)
 extern UINT8 *CpsCode; extern UINT32 nCpsCodeLen;		// Program Rom (decrypted)
 extern UINT8 *CpsZRom; extern UINT32 nCpsZRomLen;		// Z80 Roms
 extern  INT8 *CpsQSam; extern UINT32 nCpsQSamLen;		// QSound Sample Roms
+extern UINT32 nCpsQSamMask;							// Optional sample decoder mask; 0 uses the ROM size
 extern UINT8 *CpsAd;   extern UINT32 nCpsAdLen;		    // ADPCM Data
 extern UINT8 *CpsKey; extern UINT32 nCpsKeyLen;
 extern UINT32 nCpsGfxScroll[4];								// Offset to Scroll tiles
@@ -188,6 +190,8 @@ extern INT32 bCpsUpdatePalEveryFrame;
 INT32 CpsPalInit();
 INT32 CpsPalExit();
 INT32 CpsPalUpdate(UINT8 *pNewPal);
+INT32 CpsPalVisualScan(INT32 nAction);
+INT32 CpsPalConsumeRestoredCache();
 
 // cps_mem.cpp
 extern UINT8 *CpsRam90;
@@ -198,6 +202,8 @@ extern UINT8 *CpsSaveReg[MAX_RASTER + 1];
 extern UINT8 *CpsSaveFrg[2];
 extern UINT8 *CpsRamFF;
 void CpsMapObjectBanks(INT32 nBank);
+extern UINT8 *CpsObjGfxBank;		// Optional per-entry graphics bank metadata
+INT32 CpsVisualScan(INT32 nAction);
 INT32 CpsMemInit();
 INT32 CpsMemExit();
 INT32 CpsAreaScan(INT32 nAction,INT32 *pnMin);
@@ -287,7 +293,6 @@ extern INT32 Ssf2tb;
 extern INT32 Dinohunt;
 extern INT32 Port6SoundWrite;
 extern INT32 CpsBootlegEEPROM;
-extern INT32 Cps2Turbo;
 extern INT32 Jurassic99;
 extern INT32 Dinoh;
 extern INT32 Wofhfh;
@@ -352,6 +357,11 @@ void QsndSyncZ80();
 INT32 QsndScan(INT32 nAction);
 
 // qs_z.cpp
+void QsndZReset();
+void QsndZSetBank(INT32 nBank);
+INT32 QsndZGetBank();
+UINT8 __fastcall QsndZRead(UINT16 a);
+void __fastcall QsndZWrite(UINT16 a, UINT8 d);
 INT32 QsndZInit();
 INT32 QsndZExit();
 INT32 QsndZScan(INT32 nAction);
@@ -420,6 +430,8 @@ extern Cps1ObjGetCallback Cps1ObjGetCallbackFunction;
 typedef INT32 (*Cps1ObjDrawCallback)(INT32, INT32);
 extern Cps1ObjDrawCallback Cps1ObjDrawCallbackFunction;
 
+void CpsObjReset();
+INT32 CpsObjVisualScan(INT32 nAction);
 INT32  CpsObjInit();
 INT32  CpsObjExit();
 INT32  CpsObjGet();
@@ -448,6 +460,13 @@ INT32 Cps1Scr1Draw(UINT8 *Base,INT32 sx,INT32 sy);
 INT32 Cps1Scr3Draw(UINT8 *Base,INT32 sx,INT32 sy);
 INT32 Cps2Scr1Draw(UINT8 *Base,INT32 sx,INT32 sy);
 INT32 Cps2Scr3Draw(UINT8 *Base,INT32 sx,INT32 sy);
+
+// Shared by the three CPS2 scroll layers, including the row-scroll path.
+inline static INT32 Cps2ScrollAddress(INT32 nAddress, INT32 nAttributes)
+{
+	// The native address wraps before attribute bit 9 selects the upper graphics half.
+	return (nAddress & Cps2Board.nScrollMask) | ((nAttributes & Cps2Board.nScrollBankAttribute) << 16);
+}
 
 // cpsr.cpp
 extern UINT8 *CpsrBase;						// Tile data base
@@ -560,21 +579,4 @@ extern UINT16 Cps2VolumeStates[40];
 extern INT32 Cps2DisableDigitalVolume;
 extern UINT8 Cps2VolUp;
 extern UINT8 Cps2VolDwn;
-extern UINT8 AspectDIP;
-
-// cps_rw.cpp: X-Men Vs. Street Fighter 3v3 + DHC board additions (xmvsf3v3.h)
-extern UINT8 CpsXmvSixButtons[6][13];
-extern INT32 CpsXmvSixEnabled;
-extern INT32 CpsXmvWide;
-INT32 CpsXmvSixInit(INT32 bWide);
-void CpsXmvSixExit();
-INT32 CpsXmvSixReset();
-INT32 CpsXmvSixScan(INT32 nAction, INT32* pnMin);
-const UINT8* CpsXmvScroll1Extension();
-// ... and its exact save states (run-ahead, netplay): the display state other games rebuild after a load
-INT32 CpsXmvVisualScan(INT32 nAction);		// cps_mem.cpp
-INT32 CpsObjVisualScan(INT32 nAction);		// cps_obj.cpp
-INT32 CpsPalVisualScan(INT32 nAction);		// cps_pal.cpp
-INT32 CpsPalConsumeRestoredCache();
-
 #endif

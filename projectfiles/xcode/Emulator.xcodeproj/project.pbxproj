@@ -623,6 +623,7 @@
 		FE1B263423561A770065200C /* cps_mem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FE1B209323561A6C0065200C /* cps_mem.cpp */; };
 		FE1B263523561A770065200C /* ps.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FE1B209423561A6C0065200C /* ps.cpp */; };
 		FE1B263723561A770065200C /* cps2_crpt.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FE1B209623561A6C0065200C /* cps2_crpt.cpp */; };
+		A427B0010000000000000001 /* cps2_board.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A427B0010000000000000002 /* cps2_board.cpp */; };
 		FE1B263823561A770065200C /* ctv.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FE1B209723561A6C0065200C /* ctv.cpp */; };
 		FE1B263923561A770065200C /* cps_draw.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FE1B209823561A6C0065200C /* cps_draw.cpp */; };
 		FE1B263A23561A770065200C /* kabuki.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FE1B209923561A6C0065200C /* kabuki.cpp */; };
@@ -2167,6 +2168,7 @@
 		FE1B209423561A6C0065200C /* ps.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ps.cpp; sourceTree = "<group>"; };
 		FE1B209523561A6C0065200C /* ctv_make.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ctv_make.cpp; sourceTree = "<group>"; };
 		FE1B209623561A6C0065200C /* cps2_crpt.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cps2_crpt.cpp; sourceTree = "<group>"; };
+		A427B0010000000000000002 /* cps2_board.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cps2_board.cpp; sourceTree = "<group>"; };
 		FE1B209723561A6C0065200C /* ctv.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ctv.cpp; sourceTree = "<group>"; };
 		FE1B209823561A6C0065200C /* cps_draw.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cps_draw.cpp; sourceTree = "<group>"; };
 		FE1B209923561A6C0065200C /* kabuki.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = kabuki.cpp; sourceTree = "<group>"; };
@@ -4598,6 +4600,7 @@
 				FE1B209423561A6C0065200C /* ps.cpp */,
 				FE1B209523561A6C0065200C /* ctv_make.cpp */,
 				FE1B209623561A6C0065200C /* cps2_crpt.cpp */,
+				A427B0010000000000000002 /* cps2_board.cpp */,
 				FE1B209723561A6C0065200C /* ctv.cpp */,
 				FE1B209823561A6C0065200C /* cps_draw.cpp */,
 				FE1B209923561A6C0065200C /* kabuki.cpp */,
@@ -6253,6 +6256,7 @@
 				FE1B27A223561A790065200C /* sn76496.cpp in Sources */,
 				FE1B253923561A760065200C /* d_bestleag.cpp in Sources */,
 				FE1B263723561A770065200C /* cps2_crpt.cpp in Sources */,
+				A427B0010000000000000001 /* cps2_board.cpp in Sources */,
 				FE1B252823561A760065200C /* d_mcatadv.cpp in Sources */,
 				FE1B27CB23561A790065200C /* kaneko_tmap.cpp in Sources */,
 				FE1B261723561A770065200C /* d_kbash.cpp in Sources */,

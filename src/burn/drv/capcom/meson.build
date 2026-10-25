@@ -8,6 +8,7 @@ group_desc = 'Capcom drivers'
 group_srcs = [
     'cps.cpp',
     'cps2_crpt.cpp',
+    'cps2_board.cpp',
     'cps_config.cpp',
     'cps_draw.cpp',
     'cps_mem.cpp',

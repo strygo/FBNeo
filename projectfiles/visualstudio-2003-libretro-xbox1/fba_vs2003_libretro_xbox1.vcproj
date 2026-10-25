@@ -289,6 +289,9 @@
 							RelativePath="..\..\src\burn\drv\capcom\cps2_crpt.cpp">
 						</File>
 						<File
+							RelativePath="..\..\src\burn\drv\capcom\cps2_board.cpp">
+						</File>
+						<File
 							RelativePath="..\..\src\burn\drv\capcom\cps_config.cpp">
 						</File>
 						<File

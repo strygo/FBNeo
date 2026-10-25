@@ -485,6 +485,7 @@
     <ClCompile Include="..\..\src\burn\drv\atari\d_xybots.cpp" />
     <ClCompile Include="..\..\src\burn\drv\capcom\cps.cpp" />
     <ClCompile Include="..\..\src\burn\drv\capcom\cps2_crpt.cpp" />
+    <ClCompile Include="..\..\src\burn\drv\capcom\cps2_board.cpp" />
     <ClCompile Include="..\..\src\burn\drv\capcom\cpsr.cpp" />
     <ClCompile Include="..\..\src\burn\drv\capcom\cpsrd.cpp" />
     <ClCompile Include="..\..\src\burn\drv\capcom\cpst.cpp" />

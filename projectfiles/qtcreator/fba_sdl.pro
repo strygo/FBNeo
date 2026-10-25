@@ -311,6 +311,7 @@ $$DRV_CAPCOM {
 	    ../../src/burn/drv/capcom/cps_scr.cpp \
 	    ../../src/burn/drv/capcom/cps.cpp \
 	    ../../src/burn/drv/capcom/cps2_crpt.cpp \
+	    ../../src/burn/drv/capcom/cps2_board.cpp \
 	    ../../src/burn/drv/capcom/cpsr.cpp \
 	    ../../src/burn/drv/capcom/cpsrd.cpp \
 	    ../../src/burn/drv/capcom/cpst.cpp \

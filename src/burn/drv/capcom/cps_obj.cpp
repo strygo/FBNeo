@@ -1,8 +1,8 @@
 #include "cps.h"
-#include "xmvsf3v3.h"
 // CPS Objs (sprites)
 
 INT32 nCpsObjectBank;
+UINT8 *CpsObjGfxBank = NULL;
 INT32 Sfa2ObjHack = 0;
 
 UINT8 *CpsBootlegSpriteRam = NULL;
@@ -15,6 +15,7 @@ Cps1ObjDrawCallback Cps1ObjDrawCallbackFunction = NULL;
 
 // Our copy of the sprite table
 static UINT8 *ObjMem = NULL;
+static INT32 nObjMemLen;
 
 static INT32 nMax = 0;
 static INT32 nGetNext = 0;
@@ -28,6 +29,7 @@ static INT32 nZOffset;
 struct ObjFrame {
 	INT32 nShiftX, nShiftY;
 	UINT8* Obj;
+	UINT8* GfxBank;
 	INT32 nCount;
 };
 
@@ -35,10 +37,12 @@ static INT32 nFrameCount = 0;
 static struct ObjFrame of[3];
 
 static UINT8 *blendtable;
+static UINT32 nBlendCount;
 
 static void CpsBlendInit()
 {
 	blendtable = NULL;
+	nBlendCount = 0;
 
 	TCHAR filename[MAX_PATH];
 
@@ -46,12 +50,8 @@ static void CpsBlendInit()
 
 	FILE *fa = _tfopen(filename, _T("rt"));
 
-	INT32 is_sfz3mix = strstr("sfz3mix", BurnDrvGetTextA(DRV_NAME)) != NULL;
-
 	if (fa == NULL) {
-		if (is_sfz3mix) {
-			// for sfz3mix, don't use parent's blend table. sfz3mix uses different
-			// sprite indexing
+		if (!Cps2Board.bParentBlend) {
 			return;
 		}
 
@@ -66,8 +66,15 @@ static void CpsBlendInit()
 
 	bprintf (PRINT_IMPORTANT, _T("Using sprite blending (.bld) table!\n"));
 
-	blendtable = (UINT8*)BurnMalloc(0x40000); // maximum number of sprites
-	memset (blendtable, 0, 0x40000); // no blend
+	// One entry per 16x16 tile; retain the native range for mirrored tile addresses.
+	nBlendCount = (nCpsGfxMask + 1) >> 7;
+	if (nBlendCount < 0x40000) nBlendCount = 0x40000;
+	blendtable = (UINT8*)BurnMalloc(nBlendCount);
+	if (blendtable == NULL) {
+		fclose(fa);
+		return;
+	}
+	memset(blendtable, 0, nBlendCount);
 
 	char szLine[64];
 
@@ -97,7 +104,7 @@ static void CpsBlendInit()
 		}
 
 		for (k = min; k <= max; k++) {
-			if (k < 0x40000)
+			if (k < nBlendCount)
 				blendtable[k] = table[type&3];
 		}
 	}
@@ -118,19 +125,21 @@ INT32 CpsObjInit()
 	nFrameCount = 2;			// CPS2 sprites lagged by 1 frame and double buffered
 								// CPS1 sprites lagged by 1 frame
 
-	ObjMem = (UINT8*)BurnMalloc((nMax << 3) * nFrameCount);
+	nObjMemLen = ((nMax << 3) + (CpsObjGfxBank ? nMax : 0)) * nFrameCount;
+	ObjMem = (UINT8*)BurnMalloc(nObjMemLen);
 	if (ObjMem == NULL) {
 		return 1;
 	}
 
-	// xmvsf3v3: every buffer its states hold starts the same way
-	if (CpsXmvSixEnabled) memset(ObjMem, 0, (nMax << 3) * nFrameCount);
+	// Initialize the buffers included in exact frame replay states.
+	if (Cps2Board.pDisplayState) memset(ObjMem, 0, nObjMemLen);
 
 	// Set up the frame buffers
 	for (INT32 i = 0; i < nFrameCount; i++) {
 		of[i].Obj = ObjMem + (nMax << 3) * i;
+		of[i].GfxBank = CpsObjGfxBank ? ObjMem + (nMax << 3) * nFrameCount + nMax * i : NULL;
 		of[i].nCount = 0;
-		if (CpsXmvSixEnabled) of[i].nShiftX = of[i].nShiftY = 0;
+		if (Cps2Board.pDisplayState) of[i].nShiftX = of[i].nShiftY = 0;
 	}
 
 	nGetNext=0;
@@ -151,6 +160,7 @@ INT32 CpsObjExit()
 
 	for (INT32 i = 0; i < nFrameCount; i++) {
 		of[i].Obj = NULL;
+		of[i].GfxBank = NULL;
 		of[i].nCount = 0;
 	}
 
@@ -165,6 +175,14 @@ INT32 CpsObjExit()
 	Cps1ObjDrawCallbackFunction = NULL;
 
 	return 0;
+}
+
+void CpsObjReset()
+{
+	if (ObjMem == NULL) return;
+	memset(ObjMem, 0, nObjMemLen);
+	for (INT32 i = 0; i < nFrameCount; i++) of[i].nCount = 0;
+	nGetNext = 0;
 }
 
 // Get CPS sprites into Obj
@@ -236,6 +254,10 @@ INT32 CpsObjGet()
 
 		// Okay - this sprite is active:
 		memcpy(po, pg, 8); // copy it over
+		if (pof->GfxBank) {
+			// Blanked entries are skipped, so latch metadata alongside the compacted list.
+			pof->GfxBank[pof->nCount] = CpsObjGfxBank[((nCpsObjectBank ^ 1) << 10) + i];
+		}
 
 		pof->nCount++;
 		po += 8;
@@ -333,7 +355,7 @@ INT32 Cps1ObjDraw(INT32 nLevelFrom,INT32 nLevelTo)
 				nCpstX=x+(ex<<4);
 				nCpstY=y+(ey<<4);
 				nCpstTile = (n & ~0x0F) + (dy << 4) + ((n + dx) & 0x0F);
-				nCpsBlend = (blendtable) ? blendtable[nCpstTile] : 0;
+				nCpsBlend = (blendtable && nCpstTile < nBlendCount) ? blendtable[nCpstTile] : 0;
 				nCpstTile <<= 7;
 				CpstOneObjDoX[0]();
 				nCpsBlend = 0;
@@ -431,30 +453,23 @@ INT32 Cps2ObjDraw(INT32 nLevelFrom, INT32 nLevelTo)
 //		y -= CpsSaveFrg[0][0xB];
 
 #endif
-		if (Cps2Turbo) {
-			if (BURN_ENDIAN_SWAP_INT16(ps[1]) & 0x1000) ps[1] |= BURN_ENDIAN_SWAP_INT16(0x8000);
-			n |= (BURN_ENDIAN_SWAP_INT16(ps[1]) & 0xe000) << 3;	// high bits of address
-		} else {
-			n |= (BURN_ENDIAN_SWAP_INT16(ps[1]) & 0x6000) << 3;	// high bits of address
+		if (BURN_ENDIAN_SWAP_INT16(ps[1]) & Cps2Board.nObjectAliasBit) ps[1] |= BURN_ENDIAN_SWAP_INT16(0x8000);
+		n |= (BURN_ENDIAN_SWAP_INT16(ps[1]) & Cps2Board.nObjectAddressMask) << 3;
+
+		if (pof->GfxBank) {
+			INT32 nEntry = ((UINT8*)ps - pof->Obj) >> 3;
+			n |= pof->GfxBank[nEntry] << 18;
 		}
-		
+
 		// Find the palette for the tiles on this sprite
 		CpstPal = CpsPal + ((a & 0x1F) << 4);
 
-		// xmvsf3v3: the HUD's mini portraits in each fighter's colour, decoded from the program ROM
 		UINT32* pStockPal = CpstPal;
-		UINT32 nPortraitPal[16];
-		UINT32 nPortraitColor = 0;
-		if (CpsXmvSixEnabled && XmvPortraitObject(n, BURN_ENDIAN_SWAP_INT16(ps[0]), BURN_ENDIAN_SWAP_INT16(ps[1]), a, CpsXmvWide != 0, &nPortraitColor)) {
-			UINT16 nColors[16];
-			if (!XmvPortraitColors(CpsRom, nCpsRomLen, n, nPortraitColor, nColors)) {
-				continue;	// the marker isn't a palette, so don't draw it with one
-			}
-			for (INT32 pen = 0; pen < 16; pen++) {
-				UINT32 c = nColors[pen];
-				nPortraitPal[pen] = BurnHighCol(((c >> 8) & 15) * 17, ((c >> 4) & 15) * 17, (c & 15) * 17, 0);
-			}
-			CpstPal = nPortraitPal;
+		UINT32 nObjectPal[16];
+		if (Cps2Board.ObjectPalette) {
+			INT32 nResult = Cps2Board.ObjectPalette(n, BURN_ENDIAN_SWAP_INT16(ps[0]), BURN_ENDIAN_SWAP_INT16(ps[1]), a, nObjectPal);
+			if (nResult < 0) continue;
+			if (nResult) CpstPal = nObjectPal;
 		}
 
 		nFlip = (a >> 5) & 3;
@@ -494,7 +509,9 @@ INT32 Cps2ObjDraw(INT32 nLevelFrom, INT32 nLevelTo)
 				nCpstY = y + (ey << 4);
 
 //				nCpstTile = n + (dy << 4) + dx;								// normal version
-				nCpstTile = (n & ~0x0F) + (dy << 4) + ((n + dx) & 0x0F);	// pgear fix
+				nCpstTile = (n & ~0x0F) + (dy << 4) + ((n + dx) & 0x0F); // pgear fix
+				// Row arithmetic wraps within the selected latched tile bank.
+				if (pof->GfxBank) nCpstTile = (nCpstTile & 0xffff) | (n & 0x70000);
 				
 				if (Sfa2ObjHack) {
 					// hack to not render blue squares on high score screen after name entry - they should be hidden by priority from what I can see
@@ -503,7 +520,7 @@ INT32 Cps2ObjDraw(INT32 nLevelFrom, INT32 nLevelTo)
 					//if (ps[2] == 0xa410) bprintf(PRINT_NORMAL, _T("%x, %x, %x, %x, %x, %x, %x\n"), nCpstTile, a & 0x1f, nCpstX, nCpstY, v, nLevelFrom, nLevelTo);
 				}
 				
-				nCpsBlend = (blendtable) ? blendtable[nCpstTile] : 0;
+				nCpsBlend = (blendtable && nCpstTile < nBlendCount) ? blendtable[nCpstTile] : 0;
 				nCpstTile <<= 7;						// Find real tile address					
 
 				pCpstOne();
@@ -511,7 +528,7 @@ INT32 Cps2ObjDraw(INT32 nLevelFrom, INT32 nLevelTo)
 			}
 		}
 
-		CpstPal = pStockPal;	// never leave it pointing at nPortraitPal
+		CpstPal = pStockPal;	// never leave it pointing at nObjectPal
 	}
 
 	return 0;
@@ -907,19 +924,18 @@ INT32 FcrashObjDraw(INT32 nLevelFrom,INT32 nLevelTo)
 	return 0;
 }
 
-// xmvsf3v3: the sprite lag buffers (the Obj pointers are rebuilt by CpsObjInit, never saved).
-// The Z buffer and its counters aren't saved: only drawing changes them, so they'd make a state
-// depend on which frames were drawn (netplay replays and run-ahead's hidden frames aren't), and
-// each frame's Z values start above what's already in the buffer
+// Save the sprite lag buffers, but rebuild their pointers on initialization.
+// The Z buffer and counters are drawing scratch: saving them would make states
+// depend on which frames were drawn. Each frame starts above the old Z values.
 INT32 CpsObjVisualScan(INT32 nAction)
 {
-	if (!CpsXmvSixEnabled || !(nAction & ACB_DRIVER_DATA)) return 0;
+	if (!Cps2Board.pDisplayState || !(nAction & ACB_DRIVER_DATA)) return 0;
 
 	struct BurnArea ba;
 	memset(&ba, 0, sizeof(ba));
 	ba.Data = ObjMem;
-	ba.nLen = (nMax << 3) * nFrameCount;
-	ba.szName = "XMvsSF 3v3 sprite lag buffers";
+	ba.nLen = nObjMemLen;
+	ba.szName = Cps2Board.pDisplayState->szObjects;
 	BurnAcb(&ba);
 
 	SCAN_VAR(nGetNext);

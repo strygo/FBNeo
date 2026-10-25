@@ -349,6 +349,9 @@
     <ClCompile Include="..\..\src\burn\drv\capcom\cps2_crpt.cpp">
       <Filter>burn\drv\capcom</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\burn\drv\capcom\cps2_board.cpp">
+      <Filter>burn\drv\capcom</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\burn\drv\capcom\cps_config.cpp">
       <Filter>burn\drv\capcom</Filter>
     </ClCompile>
