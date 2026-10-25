@@ -11,7 +11,6 @@
 #include "eeprom.h"
 #include "timer.h"
 #include "samples.h"
-#include "cps2_board.h"
 
 // Maximum number of beam-synchronized interrupts to check
 #define MAX_RASTER 10
@@ -29,6 +28,7 @@ extern INT32 nCpsCycles;												// Cycles per frame
 extern INT32 nCpsZ80Cycles;
 extern UINT8 *CpsGfx;  extern UINT32 nCpsGfxLen;		// All the graphics
 extern UINT8 *CpsRom;  extern UINT32 nCpsRomLen;		// Program Rom (as in rom)
+extern UINT32 nCpsRomMapLen;							// Optional program mapping size; 0 uses the ROM size
 extern UINT8 *CpsCode; extern UINT32 nCpsCodeLen;		// Program Rom (decrypted)
 extern UINT8 *CpsZRom; extern UINT32 nCpsZRomLen;		// Z80 Roms
 extern  INT8 *CpsQSam; extern UINT32 nCpsQSamLen;		// QSound Sample Roms
@@ -40,6 +40,7 @@ extern UINT32 nCpsGfxMask;									// Address mask
 extern UINT8* CpsStar;
 INT32 CpsInit();
 INT32 Cps2Init();
+INT32 Cps2Init(INT32 nMapLen, UINT32 nGfxSize, INT32 bLinear);
 INT32 CpsExit();
 INT32 CpsLoadTiles(UINT8 *Tile,INT32 nStart);
 INT32 CpsLoadTilesByte(UINT8 *Tile,INT32 nStart);
@@ -202,7 +203,6 @@ extern UINT8 *CpsSaveReg[MAX_RASTER + 1];
 extern UINT8 *CpsSaveFrg[2];
 extern UINT8 *CpsRamFF;
 void CpsMapObjectBanks(INT32 nBank);
-extern UINT8 *CpsObjGfxBank;		// Optional per-entry graphics bank metadata
 INT32 CpsVisualScan(INT32 nAction);
 INT32 CpsMemInit();
 INT32 CpsMemExit();
@@ -210,6 +210,21 @@ INT32 CpsAreaScan(INT32 nAction,INT32 *pnMin);
 
 typedef INT32 (*CpsMemScanCallback)(INT32, INT32*);
 extern CpsMemScanCallback CpsMemScanCallbackFunction;
+// Additional device state precedes sound state in the scan order.
+extern CpsMemScanCallback CpsMemScanExtraCallbackFunction;
+typedef void (*CpsSoundScanCallback)(INT32, INT32*);
+extern CpsSoundScanCallback CpsSoundScanCallbackFunction;
+
+extern INT32 bCpsObjectBankHandlers;
+struct CpsDisplayState {
+	char* szPalette;
+	char* szRegisters;
+	char* szFrg;
+	char* szObjects;
+	char* szEffectivePalette;
+	bool bRawPalette;
+};
+extern const CpsDisplayState* pCpsDisplayState;
 
 // cps_run.cpp
 extern UINT8 CpsReset;
@@ -317,6 +332,9 @@ void __fastcall CpsWriteWord(UINT32 a, UINT16 d);
 
 typedef void (*CpsRWSoundCommandCallback)(UINT16);
 extern CpsRWSoundCommandCallback CpsRWSoundCommandCallbackFunction;
+// Prepare inputs before port compilation; return the number of stock-port players.
+typedef INT32 (*CpsRwGetInpCallback)();
+extern CpsRwGetInpCallback CpsRwGetInpCallbackFunction;
 
 // cps_draw.cpp
 extern UINT8 CpsRecalcPal;				// Flag - If it is 1, recalc the whole palette
@@ -357,6 +375,7 @@ void QsndSyncZ80();
 INT32 QsndScan(INT32 nAction);
 
 // qs_z.cpp
+extern INT32 nQsndZ80Clock, nQsndZBankOffset;
 void QsndZReset();
 void QsndZSetBank(INT32 nBank);
 INT32 QsndZGetBank();
@@ -367,6 +386,7 @@ INT32 QsndZExit();
 INT32 QsndZScan(INT32 nAction);
 
 // qs_c.cpp
+extern INT32 bQscScanHistory;							// Include resampler history in saved states
 INT32 QscInit(INT32 nRate);
 void QscSetRoute(INT32 nIndex, double nVolume, INT32 nRouteDir);
 void QscReset();
@@ -421,6 +441,7 @@ INT32 CtvReady();
 
 // cps_obj.cpp
 extern INT32 nCpsObjectBank;
+extern UINT8 *CpsObjGfxBank;		// Optional per-entry graphics bank metadata
 extern UINT8 *CpsBootlegSpriteRam;
 extern INT32 Cps1LockSpriteList910000;
 extern INT32 Cps1DetectEndSpriteList8000;
@@ -429,6 +450,12 @@ typedef INT32 (*Cps1ObjGetCallback)();
 extern Cps1ObjGetCallback Cps1ObjGetCallbackFunction;
 typedef INT32 (*Cps1ObjDrawCallback)(INT32, INT32);
 extern Cps1ObjDrawCallback Cps1ObjDrawCallbackFunction;
+extern INT32 bCpsUseParentBlend;
+typedef INT32 (*Cps2ObjTileCallback)(UINT16*);
+extern Cps2ObjTileCallback Cps2ObjTileCallbackFunction;
+// Negative skips the object, zero uses its palette, positive supplies 16 colors.
+typedef INT32 (*Cps2ObjPaletteCallback)(INT32, UINT16, UINT16, INT32, UINT32*);
+extern Cps2ObjPaletteCallback Cps2ObjPaletteCallbackFunction;
 
 void CpsObjReset();
 INT32 CpsObjVisualScan(INT32 nAction);
@@ -461,11 +488,16 @@ INT32 Cps1Scr3Draw(UINT8 *Base,INT32 sx,INT32 sy);
 INT32 Cps2Scr1Draw(UINT8 *Base,INT32 sx,INT32 sy);
 INT32 Cps2Scr3Draw(UINT8 *Base,INT32 sx,INT32 sy);
 
-// Shared by the three CPS2 scroll layers, including the row-scroll path.
-inline static INT32 Cps2ScrollAddress(INT32 nAddress, INT32 nAttributes)
+typedef INT32 (*Cps2ScrollCallback)(INT32, INT32, INT32);
+extern Cps2ScrollCallback Cps2ScrollCallbackFunction;
+typedef const UINT8* (*Cps2Scroll1Callback)();
+extern Cps2Scroll1Callback Cps2Scroll1CallbackFunction;
+
+// Resolve a scroll tile address, including its layer's graphics offset.
+inline static INT32 Cps2ScrollAddress(INT32 nAddress, INT32 nAttributes, INT32 nLayer)
 {
-	// The native address wraps before attribute bit 9 selects the upper graphics half.
-	return (nAddress & Cps2Board.nScrollMask) | ((nAttributes & Cps2Board.nScrollBankAttribute) << 16);
+	if (Cps2ScrollCallbackFunction) return Cps2ScrollCallbackFunction(nAddress, nAttributes, nLayer);
+	return nAddress + nCpsGfxScroll[nLayer];
 }
 
 // cpsr.cpp

@@ -14,7 +14,7 @@ drvsrc	= 	d_akkaarrh.o d_arcadecl.o d_atarig1.o d_atarisy1.o d_atarisy2.o d_badl
 			\
 			d_cps1.o d_mitchell.o \
 			\
-			d_cps2.o \
+			d_cps2.o d_cps2_custom.o \
 			\
 			d_cps3.o \
 			\
@@ -131,7 +131,7 @@ depobj	= 	burn.o burn_bitmap.o burn_gun.o burn_led.o burn_shift.o burn_memory.o 
 			\
 			cave.o cave_palette.o cave_sprite.o cave_tile.o \
 			\
-			cps2_crpt.o cps2_board.o cps.o cps_config.o cps_draw.o cps_mem.o cps_obj.o cps_pal.o cps_run.o cps_rw.o cps_scr.o cpsr.o cpsrd.o cpst.o ctv.o fcrash_snd.o \
+			cps2_crpt.o cps.o cps_config.o cps_draw.o cps_mem.o cps_obj.o cps_pal.o cps_run.o cps_rw.o cps_scr.o cpsr.o cpsrd.o cpst.o ctv.o fcrash_snd.o \
 			kabuki.o ps.o ps_m.o ps_z.o qs.o qs_c.o qs_z.o sf2mdt_snd.o \
 			\
 			cps3run.o cps3snd.o \

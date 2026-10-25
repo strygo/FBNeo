@@ -8,7 +8,6 @@ group_desc = 'Capcom drivers'
 group_srcs = [
     'cps.cpp',
     'cps2_crpt.cpp',
-    'cps2_board.cpp',
     'cps_config.cpp',
     'cps_draw.cpp',
     'cps_mem.cpp',
@@ -34,5 +33,6 @@ group_srcs = [
 drivers = {
     'd_cps1.cpp': ['ay8910', 'eeprom', 'm68000', 'msm5205', 'msm6295', 'samples', 'timekpr', 'ym2151', 'ym2203', 'z80'],
     'd_cps2.cpp': ['ay8910', 'eeprom', 'm68000', 'msm5205', 'msm6295', 'samples', 'ym2151', 'ym2203', 'z80'],
+    'd_cps2_custom.cpp': ['ay8910', 'eeprom', 'm68000', 'msm5205', 'msm6295', 'samples', 'ym2151', 'ym2203', 'z80'],
     'd_mitchell.cpp': ['ay8910', 'eeprom', 'm68000', 'msm5205', 'msm6295', 'samples', 'ym2151', 'ym2203', 'ym2413', 'z80'],
 }

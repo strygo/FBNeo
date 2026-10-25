@@ -16,6 +16,7 @@ UINT8 *CpsCode=NULL; UINT32 nCpsCodeLen=0; // Program Rom (decrypted)
 UINT8 *CpsZRom=NULL; UINT32 nCpsZRomLen=0; // Z80 Roms
 INT8 *CpsQSam=NULL; UINT32 nCpsQSamLen=0;	// QSound Sample Roms
 UINT32 nCpsQSamMask = 0;
+UINT32 nCpsRomMapLen = 0;
 UINT8 *CpsAd  =NULL; UINT32 nCpsAdLen  =0; // ADPCM Data
 UINT8 *CpsStar=NULL;
 UINT8 *CpsKey=NULL; UINT32 nCpsKeyLen = 0;
@@ -1987,7 +1988,7 @@ INT32 Cps2LoadTilesGigaman2(UINT8 *Tile, UINT8 *pSrc)
 
 static UINT32 nGfxMaxSize;
 
-static INT32 CpsGetROMs(bool bLoad)
+static INT32 CpsGetROMs(bool bLoad, INT32 bLinear)
 {
 	struct BurnRomInfo ri;
 
@@ -2024,7 +2025,7 @@ static INT32 CpsGetROMs(bool bLoad)
 		if ((ri.nType & 0x0f) == CPS2_PRG_68K) {
 			if (bLoad) {
 				if (BurnLoadRom(CpsRomLoad, i, 1)) return 1;
-				if (Cps2Board.nRomLayout == CPS2_ROM_LINEAR) BurnByteswap(CpsRomLoad, ri.nLen);
+				if (bLinear) BurnByteswap(CpsRomLoad, ri.nLen);
 				CpsRomLoad += ri.nLen;
 			} else {
 				nCpsRomLen += ri.nLen;
@@ -2053,7 +2054,7 @@ static INT32 CpsGetROMs(bool bLoad)
 		
 		if ((ri.nType & 0x0f) == CPS2_GFX) {
 			if (bLoad) {
-				if (Cps2Board.nRomLayout == CPS2_ROM_LINEAR) {
+				if (bLinear) {
 					BurnLoadRom(CpsGfxLoad, i, 1);
 
 					CpsGfxLoad += ri.nLen;
@@ -2143,7 +2144,7 @@ static INT32 CpsGetROMs(bool bLoad)
 		if ((ri.nType & 0x0f) == CPS2_QSND) {
 			if (bLoad) {
 				BurnLoadRom(CpsQSamLoad, i, 1);
-				if (Cps2Board.nRomLayout == CPS2_ROM_SOCKETS) {
+				if (!bLinear) {
 					BurnByteswap(CpsQSamLoad, ri.nLen);
 				}
 				CpsQSamLoad += ri.nLen;
@@ -2190,7 +2191,7 @@ static INT32 CpsGetROMs(bool bLoad)
 			((UINT32*)CpsCode)[i] ^= ((UINT32*)CpsRom)[i];
 		}
 #endif
-		if (Cps2Board.nRomLayout == CPS2_ROM_LINEAR) {
+		if (bLinear) {
 			Cps2LoadTilesTurbo(CpsGfx, nCpsGfxLen);
 		}
 
@@ -2203,7 +2204,6 @@ static INT32 CpsGetROMs(bool bLoad)
 		if (nGfxMaxSize != ~0U) {
 			nCpsGfxLen = nGfxNum * nGfxMaxSize;
 		}
-		if (Cps2Board.nGfxSize) nCpsGfxLen = Cps2Board.nGfxSize;
 		
 #if 1 && defined FBNEO_DEBUG
 		if (!nCpsCodeLen) {
@@ -2318,15 +2318,24 @@ INT32 CpsInit()
 
 INT32 Cps2Init()
 {
-	Cps = 2;
+	return Cps2Init(0, 0, 0);
+}
 
-	if (CpsGetROMs(false)) {
+INT32 Cps2Init(INT32 nMapLen, UINT32 nGfxSize, INT32 bLinear)
+{
+	Cps = 2;
+	nCpsRomMapLen = nMapLen;
+
+	if (CpsGetROMs(false, bLinear)) {
 		return 1;
 	}
 
-	CpsInit();
+	if (nGfxSize) nCpsGfxLen = nGfxSize;
+	if (CpsInit()) return 1;
 
-	if (CpsGetROMs(true)) {
+	if (CpsGetROMs(true, bLinear)) {
+		// Before decryption, CpsCode aliases the shared ROM allocation.
+		if (!nCpsCodeLen) CpsCode = NULL;
 		return 1;
 	}
 
@@ -2370,7 +2379,9 @@ INT32 CpsExit()
 	nCpsGlobalXOffset = 0;
 	nCpsGlobalYOffset = 0;
 
-	Cps2BoardReset();
+	nCpsRomMapLen = 0;
+	Cps2ScrollCallbackFunction = NULL;
+	Cps2Scroll1CallbackFunction = NULL;
 
 	return 0;
 }

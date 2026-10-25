@@ -311,13 +311,13 @@ $$DRV_CAPCOM {
 	    ../../src/burn/drv/capcom/cps_scr.cpp \
 	    ../../src/burn/drv/capcom/cps.cpp \
 	    ../../src/burn/drv/capcom/cps2_crpt.cpp \
-	    ../../src/burn/drv/capcom/cps2_board.cpp \
 	    ../../src/burn/drv/capcom/cpsr.cpp \
 	    ../../src/burn/drv/capcom/cpsrd.cpp \
 	    ../../src/burn/drv/capcom/cpst.cpp \
 	    ../../src/burn/drv/capcom/ctv.cpp \
 	    ../../src/burn/drv/capcom/d_cps1.cpp \
 	    ../../src/burn/drv/capcom/d_cps2.cpp \
+	    ../../src/burn/drv/capcom/d_cps2_custom.cpp \
 	    ../../src/burn/drv/capcom/fcrash_snd.cpp \
 	    ../../src/burn/drv/capcom/kabuki.cpp \
 	    ../../src/burn/drv/capcom/ps_m.cpp \

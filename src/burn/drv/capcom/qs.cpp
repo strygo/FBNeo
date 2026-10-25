@@ -21,7 +21,7 @@ INT32 QsndInit()
 	}
 	BurnTimerInit(qsndTimerOver, NULL);
 
-	INT32 nClock = Cps1Qs ? 8000000 : Cps2Board.nZ80Clock;
+	INT32 nClock = (Cps1Qs == 1) ? 8000000 : nQsndZ80Clock;
 	nCpsZ80Cycles = nClock * 100 / nBurnFPS;
 	BurnTimerAttachZet(nClock);
 
@@ -84,9 +84,6 @@ void QsndEndFrame()
 {
 	BurnTimerEndFrame(nCpsZ80Cycles);
 	if (pBurnSoundOut) QscUpdate(nBurnSoundLen);
-	if (Cps2Board.SoundRender && pBurnSoundOut) {
-		Cps2Board.SoundRender(pBurnSoundOut, nBurnSoundLen);
-	}
 
 	nQsndCyclesExtra = ZetTotalCycles() - nCpsZ80Cycles;
 	ZetClose();

@@ -12,6 +12,9 @@ INT32 Cps1DetectEndSpriteList8000 = 0;
 
 Cps1ObjGetCallback Cps1ObjGetCallbackFunction = NULL;
 Cps1ObjDrawCallback Cps1ObjDrawCallbackFunction = NULL;
+Cps2ObjTileCallback Cps2ObjTileCallbackFunction = NULL;
+Cps2ObjPaletteCallback Cps2ObjPaletteCallbackFunction = NULL;
+INT32 bCpsUseParentBlend = 1;
 
 // Our copy of the sprite table
 static UINT8 *ObjMem = NULL;
@@ -51,7 +54,7 @@ static void CpsBlendInit()
 	FILE *fa = _tfopen(filename, _T("rt"));
 
 	if (fa == NULL) {
-		if (!Cps2Board.bParentBlend) {
+		if (!bCpsUseParentBlend) {
 			return;
 		}
 
@@ -132,14 +135,14 @@ INT32 CpsObjInit()
 	}
 
 	// Initialize the buffers included in exact frame replay states.
-	if (Cps2Board.pDisplayState) memset(ObjMem, 0, nObjMemLen);
+	if (pCpsDisplayState) memset(ObjMem, 0, nObjMemLen);
 
 	// Set up the frame buffers
 	for (INT32 i = 0; i < nFrameCount; i++) {
 		of[i].Obj = ObjMem + (nMax << 3) * i;
 		of[i].GfxBank = CpsObjGfxBank ? ObjMem + (nMax << 3) * nFrameCount + nMax * i : NULL;
 		of[i].nCount = 0;
-		if (Cps2Board.pDisplayState) of[i].nShiftX = of[i].nShiftY = 0;
+		if (pCpsDisplayState) of[i].nShiftX = of[i].nShiftY = 0;
 	}
 
 	nGetNext=0;
@@ -155,6 +158,10 @@ INT32 CpsObjInit()
 
 INT32 CpsObjExit()
 {
+	Cps2ObjTileCallbackFunction = NULL;
+	Cps2ObjPaletteCallbackFunction = NULL;
+	bCpsUseParentBlend = 1;
+
 	if (blendtable)
 		BurnFree(blendtable);
 
@@ -355,7 +362,7 @@ INT32 Cps1ObjDraw(INT32 nLevelFrom,INT32 nLevelTo)
 				nCpstX=x+(ex<<4);
 				nCpstY=y+(ey<<4);
 				nCpstTile = (n & ~0x0F) + (dy << 4) + ((n + dx) & 0x0F);
-				nCpsBlend = (blendtable && nCpstTile < nBlendCount) ? blendtable[nCpstTile] : 0;
+				nCpsBlend = (blendtable) ? blendtable[nCpstTile] : 0;
 				nCpstTile <<= 7;
 				CpstOneObjDoX[0]();
 				nCpsBlend = 0;
@@ -453,8 +460,8 @@ INT32 Cps2ObjDraw(INT32 nLevelFrom, INT32 nLevelTo)
 //		y -= CpsSaveFrg[0][0xB];
 
 #endif
-		if (BURN_ENDIAN_SWAP_INT16(ps[1]) & Cps2Board.nObjectAliasBit) ps[1] |= BURN_ENDIAN_SWAP_INT16(0x8000);
-		n |= (BURN_ENDIAN_SWAP_INT16(ps[1]) & Cps2Board.nObjectAddressMask) << 3;
+		if (Cps2ObjTileCallbackFunction) n = Cps2ObjTileCallbackFunction(ps);
+		else n |= (BURN_ENDIAN_SWAP_INT16(ps[1]) & 0x6000) << 3;
 
 		if (pof->GfxBank) {
 			INT32 nEntry = ((UINT8*)ps - pof->Obj) >> 3;
@@ -466,8 +473,8 @@ INT32 Cps2ObjDraw(INT32 nLevelFrom, INT32 nLevelTo)
 
 		UINT32* pStockPal = CpstPal;
 		UINT32 nObjectPal[16];
-		if (Cps2Board.ObjectPalette) {
-			INT32 nResult = Cps2Board.ObjectPalette(n, BURN_ENDIAN_SWAP_INT16(ps[0]), BURN_ENDIAN_SWAP_INT16(ps[1]), a, nObjectPal);
+		if (Cps2ObjPaletteCallbackFunction) {
+			INT32 nResult = Cps2ObjPaletteCallbackFunction(n, BURN_ENDIAN_SWAP_INT16(ps[0]), BURN_ENDIAN_SWAP_INT16(ps[1]), a, nObjectPal);
 			if (nResult < 0) continue;
 			if (nResult) CpstPal = nObjectPal;
 		}
@@ -929,13 +936,13 @@ INT32 FcrashObjDraw(INT32 nLevelFrom,INT32 nLevelTo)
 // depend on which frames were drawn. Each frame starts above the old Z values.
 INT32 CpsObjVisualScan(INT32 nAction)
 {
-	if (!Cps2Board.pDisplayState || !(nAction & ACB_DRIVER_DATA)) return 0;
+	if (!pCpsDisplayState || !(nAction & ACB_DRIVER_DATA)) return 0;
 
 	struct BurnArea ba;
 	memset(&ba, 0, sizeof(ba));
 	ba.Data = ObjMem;
 	ba.nLen = nObjMemLen;
-	ba.szName = Cps2Board.pDisplayState->szObjects;
+	ba.szName = pCpsDisplayState->szObjects;
 	BurnAcb(&ba);
 
 	SCAN_VAR(nGetNext);

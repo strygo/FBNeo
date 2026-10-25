@@ -1,6 +1,9 @@
 #include "cps.h"
 // QSound - Z80
 
+INT32 nQsndZ80Clock = 8000000;
+INT32 nQsndZBankOffset = 0x8000;
+
 static INT32 nQsndZBank = 0;
 static UINT8 QscCmd[2] = {0, 0};
 
@@ -10,7 +13,7 @@ static INT32 QsndZBankMap()
 	UINT32 nOff;
 	UINT8* Bank;
 	nOff = nQsndZBank << 14;
-	nOff += Cps2Board.nZ80BankOffset;
+	nOff += nQsndZBankOffset;
 
 	if (Cps1Qs == 0) {
 		if (nOff + 0x4000 > nCpsZRomLen) {			// End of bank is out of range
@@ -138,6 +141,8 @@ void QsndZReset()
 
 INT32 QsndZExit()
 {
+	nQsndZ80Clock = 8000000;
+	nQsndZBankOffset = 0x8000;
 	ZetExit();
 	return 0;
 }

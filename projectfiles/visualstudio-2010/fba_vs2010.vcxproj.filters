@@ -1209,9 +1209,6 @@
     <ClCompile Include="..\..\src\burn\drv\capcom\cps2_crpt.cpp">
       <Filter>Burn\drv\capcom</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\burn\drv\capcom\cps2_board.cpp">
-      <Filter>Burn\drv\capcom</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\burn\drv\capcom\cpsr.cpp">
       <Filter>Burn\drv\capcom</Filter>
     </ClCompile>
@@ -1228,6 +1225,9 @@
       <Filter>Burn\drv\capcom</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\burn\drv\capcom\d_cps2.cpp">
+      <Filter>Burn\drv\capcom</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\burn\drv\capcom\d_cps2_custom.cpp">
       <Filter>Burn\drv\capcom</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\burn\drv\capcom\fcrash_snd.cpp">

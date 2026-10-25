@@ -15,6 +15,8 @@
 #include <string.h>	// for memset
 #include "cps.h"
 
+INT32 bQscScanHistory = 0;
+
 static const INT32 nQscClock = 60000000;
 static const INT32 nQscClockDivider = 2496;
 
@@ -738,6 +740,7 @@ void QscReset()
 
 void QscExit()
 {
+	bQscScanHistory = 0;
 	nQscRate = 0;
 }
 
@@ -778,7 +781,7 @@ INT32 QscScan(INT32 nAction)
 	ba.szName	= szName;
 	BurnAcb(&ba);
 
-	if (Cps2Board.pDisplayState) {
+	if (bQscScanHistory) {
 		// Preserve resampler history when replaying a saved frame.
 		SCAN_VAR(nDelta);
 		SCAN_VAR(nPos);

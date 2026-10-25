@@ -1,6 +1,8 @@
 #include "cps.h"
 // CPS - Read/Write
 
+CpsRwGetInpCallback CpsRwGetInpCallbackFunction = NULL;
+
 // Input bits
 #define INP(nnn) UINT8 CpsInp##nnn[8];
 CPSINPSET
@@ -588,6 +590,7 @@ INT32 CpsRwInit()
 
 INT32 CpsRwExit()
 {
+	CpsRwGetInpCallbackFunction = NULL;
 	InpBlank();
 	CpsRWSoundCommandCallbackFunction = NULL;
 	return 0;
@@ -595,7 +598,7 @@ INT32 CpsRwExit()
 
 INT32 CpsRwGetInp()
 {
-	INT32 nPortPlayers = Cps2Board.PrepareInputs ? Cps2Board.PrepareInputs() : nMaxPlayers;
+	INT32 nPortPlayers = CpsRwGetInpCallbackFunction ? CpsRwGetInpCallbackFunction() : nMaxPlayers;
 
 	// Compile separate buttons into Inpxxx
 #define INP(nnn) \

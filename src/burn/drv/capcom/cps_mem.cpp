@@ -16,6 +16,10 @@ UINT8 *CpsRam660=NULL,*CpsRam708=NULL,*CpsReg=NULL,*CpsFrg=NULL;
 UINT8 *CpsRamFF=NULL;
 
 CpsMemScanCallback CpsMemScanCallbackFunction = NULL;
+CpsMemScanCallback CpsMemScanExtraCallbackFunction = NULL;
+CpsSoundScanCallback CpsSoundScanCallbackFunction = NULL;
+const CpsDisplayState* pCpsDisplayState = NULL;
+INT32 bCpsObjectBankHandlers = 0;
 
 // This routine is called first to determine how much memory is needed
 // and then to set up all the pointers.
@@ -87,7 +91,7 @@ void CpsDoMapObjectBanks(INT32 nBank)
 {
 	nCpsObjectBank = nBank;
 
-	if (Cps2Board.bObjectBankHandlers) return;
+	if (bCpsObjectBankHandlers) return;
 
 	if (nCpsObjectBank) {
 		SekMapMemory(CpsRam708 + 0x8000, 0x708000, 0x709FFF, MAP_RAM);
@@ -261,7 +265,7 @@ INT32 CpsMemInit()
 
 	// Map in memory:
 	// 68000 Rom (as seen as is, through read)
-	UINT32 nRomMapLen = Cps2Board.nProgramMapSize ? Cps2Board.nProgramMapSize : nCpsRomLen;
+	UINT32 nRomMapLen = nCpsRomMapLen ? nCpsRomMapLen : nCpsRomLen;
 	SekMapMemory(CpsRom, 0, nRomMapLen - 1, MAP_READ);
 
 	// 68000 Rom (as seen decrypted, through fetch)
@@ -329,8 +333,6 @@ INT32 CpsMemInit()
 		SekSetWriteByteHandler(2, CPSQSoundF0WriteByte);
 	}
 
-	if (Cps2Board.MapMemory) Cps2Board.MapMemory();
-
 	SekClose();
 
 	return 0;
@@ -350,6 +352,10 @@ INT32 CpsMemExit()
 	BurnFree(CpsMem);
 	
 	CpsMemScanCallbackFunction = NULL;
+	CpsMemScanExtraCallbackFunction = NULL;
+	CpsSoundScanCallbackFunction = NULL;
+	pCpsDisplayState = NULL;
+	bCpsObjectBankHandlers = 0;
 
 	return 0;
 }
@@ -435,11 +441,11 @@ INT32 CpsAreaScan(INT32 nAction, INT32 *pnMin)
 			SCAN_VAR(nCps1LayerOffs);
 		}
 
-		if (Cps2Board.MemoryScan && Cps2Board.MemoryScan(nAction, pnMin)) return 1;
+		if (CpsMemScanExtraCallbackFunction && CpsMemScanExtraCallbackFunction(nAction, pnMin)) return 1;
 
 		CpsRwScan();									// scan cps_rw.cpp stuff
 
-		if (Cps2Board.SoundScan) Cps2Board.SoundScan(nAction, pnMin);
+		if (CpsSoundScanCallbackFunction) CpsSoundScanCallbackFunction(nAction, pnMin);
 
 		if (nAction & ACB_WRITE) {						// Palette could have changed
 			CpsRecalcPal = 1;
@@ -459,7 +465,7 @@ INT32 CpsAreaScan(INT32 nAction, INT32 *pnMin)
 	}
 	
 	if (CpsMemScanCallbackFunction) {
-		return CpsMemScanCallbackFunction(nAction, pnMin);
+		CpsMemScanCallbackFunction(nAction, pnMin);
 	}
 	
 	return 0;
@@ -468,15 +474,15 @@ INT32 CpsAreaScan(INT32 nAction, INT32 *pnMin)
 // Preserve latched display state so a paused redraw does not read the next frame's RAM.
 INT32 CpsVisualScan(INT32 nAction)
 {
-	if (!Cps2Board.pDisplayState || !(nAction & ACB_DRIVER_DATA)) return 0;
+	if (!pCpsDisplayState || !(nAction & ACB_DRIVER_DATA)) return 0;
 
 	struct BurnArea ba;
 	memset(&ba, 0, sizeof(ba));
-	ba.Data = CpsSavePal;		ba.nLen = 0x2000;								ba.szName = Cps2Board.pDisplayState->szPalette;
+	ba.Data = CpsSavePal;		ba.nLen = 0x2000;								ba.szName = pCpsDisplayState->szPalette;
 	BurnAcb(&ba);
-	ba.Data = CpsSaveRegData;	ba.nLen = 0x100 * (MAX_RASTER + 1);				ba.szName = Cps2Board.pDisplayState->szRegisters;
+	ba.Data = CpsSaveRegData;	ba.nLen = 0x100 * (MAX_RASTER + 1);				ba.szName = pCpsDisplayState->szRegisters;
 	BurnAcb(&ba);
-	ba.Data = CpsSaveFrgData;	ba.nLen = 0x20;									ba.szName = Cps2Board.pDisplayState->szFrg;
+	ba.Data = CpsSaveFrgData;	ba.nLen = 0x20;									ba.szName = pCpsDisplayState->szFrg;
 	BurnAcb(&ba);
 
 	if (CpsObjVisualScan(nAction)) return 1;
