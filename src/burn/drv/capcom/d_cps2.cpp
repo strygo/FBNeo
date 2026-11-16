@@ -16815,10 +16815,10 @@ struct BurnDriver BurnDrvCpsVamprest = {
 	&CpsRecalcPal, 0x1000, 384, 224, 4, 3
 };
 
-// Hyper Street Fighter II: The Anniversary Edition (Hack, English Restoration RC1)
-// 2026-11-05
+// Hyper Street Fighter II: The Anniversary Edition (Hack, English Restoration RC2)
+// 2026-11-14
 static struct BurnRomInfo Hsf2reRomDesc[] = {
-	{ "hs2re.03c",		0x080000, 0xc773cb30, CPS2_PRG_68K | BRF_ESS | BRF_PRG },
+	{ "hs2re.03c",		0x080000, 0xd61d0069, CPS2_PRG_68K | BRF_ESS | BRF_PRG },
 	{ "hs2re.04b",		0x080000, 0x008c3478, CPS2_PRG_68K | BRF_ESS | BRF_PRG },
 	{ "hs2j.05",		0x080000, 0xdde34a35, CPS2_PRG_68K | BRF_ESS | BRF_PRG },
 	{ "hs2j.06",		0x080000, 0xf4e56dda, CPS2_PRG_68K | BRF_ESS | BRF_PRG },
@@ -16845,7 +16845,7 @@ STD_ROM_FN(Hsf2re)
 
 struct BurnDriver BurnDrvCpsHsf2re = {
 	"hsf2re", "hsf2", NULL, NULL, "2026",
-	"Hyper Street Fighter II: The Anniversary Edition (Hack, English Restoration RC1)\0", NULL, "Strygo", "CPS2",
+	"Hyper Street Fighter II: The Anniversary Edition (Hack, English Restoration RC2)\0", NULL, "Strygo", "CPS2",
 	NULL, NULL, NULL, NULL,
 	BDF_GAME_WORKING | BDF_CLONE | BDF_HACK | BDF_HISCORE_SUPPORTED, 2, HARDWARE_CAPCOM_CPS2, GBF_VSFIGHT, FBF_SF,
 	NULL, Hsf2reRomInfo, Hsf2reRomName, NULL, NULL, NULL, NULL, Cps2FightingInputInfo, NULL,
