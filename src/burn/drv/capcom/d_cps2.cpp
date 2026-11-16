@@ -16815,17 +16815,17 @@ struct BurnDriver BurnDrvCpsVamprest = {
 	&CpsRecalcPal, 0x1000, 384, 224, 4, 3
 };
 
-// Hyper Street Fighter II: The Anniversary Edition (Hack, English Restoration RC2)
+// Hyper Street Fighter II: The Anniversary Edition (Hack, English Restoration RC3)
 // 2026-11-14
 static struct BurnRomInfo Hsf2reRomDesc[] = {
-	{ "hs2re.03c",		0x080000, 0xd61d0069, CPS2_PRG_68K | BRF_ESS | BRF_PRG },
-	{ "hs2re.04b",		0x080000, 0x008c3478, CPS2_PRG_68K | BRF_ESS | BRF_PRG },
+	{ "hs2re.03c",		0x080000, 0x42232142, CPS2_PRG_68K | BRF_ESS | BRF_PRG },
+	{ "hs2re.04b",		0x080000, 0xc8b569a5, CPS2_PRG_68K | BRF_ESS | BRF_PRG },
 	{ "hs2j.05",		0x080000, 0xdde34a35, CPS2_PRG_68K | BRF_ESS | BRF_PRG },
 	{ "hs2j.06",		0x080000, 0xf4e56dda, CPS2_PRG_68K | BRF_ESS | BRF_PRG },
 	{ "hs2j.07",		0x080000, 0xee4420fc, CPS2_PRG_68K | BRF_ESS | BRF_PRG },
 	{ "hs2j.08",		0x080000, 0xc9441533, CPS2_PRG_68K | BRF_ESS | BRF_PRG },
 	{ "hs2j.09",		0x080000, 0x3fc638a8, CPS2_PRG_68K | BRF_ESS | BRF_PRG },
-	{ "hs2re.10",		0x080000, 0x49529980, CPS2_PRG_68K | BRF_ESS | BRF_PRG },
+	{ "hs2re.10",		0x080000, 0x5299288e, CPS2_PRG_68K | BRF_ESS | BRF_PRG },
 
 	{ "hs2re.13m",		0x800000, 0x448c3ede, CPS2_GFX | BRF_GRA },
 	{ "hs2re.15m",		0x800000, 0x642e11ec, CPS2_GFX | BRF_GRA },
@@ -16845,7 +16845,7 @@ STD_ROM_FN(Hsf2re)
 
 struct BurnDriver BurnDrvCpsHsf2re = {
 	"hsf2re", "hsf2", NULL, NULL, "2026",
-	"Hyper Street Fighter II: The Anniversary Edition (Hack, English Restoration RC2)\0", NULL, "Strygo", "CPS2",
+	"Hyper Street Fighter II: The Anniversary Edition (Hack, English Restoration RC3)\0", NULL, "Strygo", "CPS2",
 	NULL, NULL, NULL, NULL,
 	BDF_GAME_WORKING | BDF_CLONE | BDF_HACK | BDF_HISCORE_SUPPORTED, 2, HARDWARE_CAPCOM_CPS2, GBF_VSFIGHT, FBF_SF,
 	NULL, Hsf2reRomInfo, Hsf2reRomName, NULL, NULL, NULL, NULL, Cps2FightingInputInfo, NULL,
